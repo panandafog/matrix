@@ -1,0 +1,6 @@
+env/
+*.o
+*.a
+*.so.1
+
+volume-bars
