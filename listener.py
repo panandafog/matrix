@@ -3,8 +3,6 @@
 import struct
 import wave
 
-import matplotlib.animation as animation
-import matplotlib.pyplot as plt
 import numpy as np
 import pyaudio
 
@@ -15,16 +13,21 @@ import sys
 import socket
 import time
 
+DEBUG = False
+
 SAVE = 0.0
 TITLE = ''
 WIDTH = 1280
 HEIGHT = 720
 FPS = 25.0
 
+X_STEP = 2
+BAR_COUNT = 32
+
 MAX_y = 16384
 RESOLUTION_Y = 32
-nFFT = 64 * 3
-BUF_SIZE = 4 * nFFT
+nFFT = 64 * X_STEP
+BUF_SIZE = 4 * int(nFFT / X_STEP)
 FORMAT = pyaudio.paInt16
 CHANNELS = 1
 RATE = 44100
@@ -33,11 +36,6 @@ HOST = '127.0.0.1'
 PORT = 1488         
 
 def main():
-
-  dpi = plt.rcParams['figure.dpi']
-  plt.rcParams['savefig.dpi'] = dpi
-  plt.rcParams["figure.figsize"] = (1.0 * WIDTH / dpi, 1.0 * HEIGHT / dpi)
-
   # Frequency range
   x_f = 1.0 * np.arange(-nFFT / 2 + 1, nFFT / 2) / nFFT * RATE
 
@@ -62,6 +60,10 @@ def main():
                   frames_per_buffer=BUF_SIZE,
                   input_device_index=0)
   
+  last_time = 0
+  dm = []
+  df = []
+  
   with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.bind((HOST, PORT))
     s.listen()
@@ -69,6 +71,15 @@ def main():
     conn, addr = s.accept()
     with conn:
       while True:
+        if not conn.recv(1):
+          break
+        
+        if DEBUG:
+          t = time.time()
+          if last_time != 0:
+            tt = t - last_time
+            dm.append(tt)
+            print("delta_matrix=" + str(tt))
 
         N = int(max(stream.get_read_available() / nFFT, 1) * nFFT)
         data = stream.read(N, exception_on_overflow=False)
@@ -91,26 +102,33 @@ def main():
         
         multipliers = [1, 1, 1, 1, 1, 2, 3, 4, 5, 6, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8]
         
-        for i in range(32):
-          c = Y[i*3+32*3]
+        middle = int(nFFT/2)
+        
+        for i in range(BAR_COUNT):
+          c = Y[i*X_STEP+middle]
           l = c
           r = c
-          if i*3+32*3-1>32*3:
-            l = Y[i*3+32*3-1]
-          if i*3+32*3+1<64*3:
-            r = Y[i*3+32*3+1]
-          Y[i*3+32*3] = (c) * multipliers[i]
-          if Y[i*3+32*3] > 32:
-            Y[i*3+32*3] = 32
-          out += (str(int(Y[i*3+32*3])) + " ")
-          if int(Y[i*3+32*3]) < 10:
+          if i*X_STEP+middle-1>middle:
+            l = Y[i*X_STEP+middle-1]
+          if i*X_STEP+middle+1<nFFT:
+            r = Y[i*X_STEP+middle+1]
+          Y[i*X_STEP+middle] = ((c + l + r) / 3) * multipliers[i]
+          if Y[i*X_STEP+middle] > RESOLUTION_Y:
+            Y[i*X_STEP+middle] = RESOLUTION_Y
+          out += (str(int(Y[i*X_STEP+middle])) + " ")
+          if int(Y[i*X_STEP+middle]) < 10:
             out += " "
-        
-        if not conn.recv(1):
-          break
         
         conn.sendall(bytes(out, 'utf-8'))
         
+        if DEBUG:
+          last_time = time.time()
+          tt = last_time - t
+          df.append(tt)
+          print("delta_fft=" + str(tt))
+  
+  print("avDF=" + str(sum(df)/len(df)))
+  print("avDM=" + str(sum(dm)/len(dm)))
   stream.stop_stream()
   stream.close()
   p.terminate()

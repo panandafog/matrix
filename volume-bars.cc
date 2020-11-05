@@ -107,19 +107,6 @@ public:
       printf("\n Error : Connect Failed \n");
       return;
     }
-
-    // Array of possible bar means
-    int numMeans = 10;
-    int means[10] = {1,2,3,4,5,6,7,8,16,32};
-    for (int i=0; i<numMeans; ++i) {
-      means[i] = height_ - means[i]*height_/8;
-    }
-    // Initialize bar means randomly
-    srand(time(NULL));
-    for (int i=0; i<numBars_; ++i) {
-      barMeans_[i] = rand()%numMeans;
-      barFreqs_[i] = 1<<(rand()%3);
-    }
     
     const char* c = new char[1];
     // Start the loop
@@ -237,7 +224,7 @@ int main(int argc, char *argv[]) {
 
   DemoRunner *demo_runner = NULL;
   
-  demo_runner = new VolumeBars(canvas, 30, canvas->width()/2);
+  demo_runner = new VolumeBars(canvas, 5, canvas->width()/2);
   
   if (demo_runner == NULL)
     return 1;
