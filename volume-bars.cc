@@ -74,6 +74,14 @@ public:
     heightOrange_ = height_-1;
     heightRed_    = height_*12/12;
     
+    // Bars falling animation properties
+    int fallingStep = 1;
+    int previousBarHeights[numBars_];
+    
+    for (int i=0; i<numBars_; ++i) {
+      previousBarHeights[i] = 0;
+    }
+    
     // Initialize socket
     const int elCount = 32;
     const int multy = 3;
@@ -109,11 +117,13 @@ public:
     }
     
     const char* c = new char[1];
+    
     // Start the loop
     while (!interrupt_received) {
       
       send(sockfd, c, 1, 0);
       
+      // Read bar heights from socket
       if ((n = read(sockfd, recvBuff, sizeof(recvBuff))) <= 0)
       {
         continue;
@@ -147,12 +157,19 @@ public:
         space = false;
       }
       
-
-      // Update bar heights
+      // Compute bar heights
       for (int i=0; i<numBars_; ++i) {
+        if (intMas[i] >= previousBarHeights[i]) {
           barHeights_[i] = intMas[i];
+        } else {
+          barHeights_[i] = previousBarHeights[i] - fallingStep;
+        }
+        if (barHeights_[i] < 0) {
+          barHeights_[i] = 0;
+        }
       }
 
+      // Apply bar heights
       for (int i=0; i<numBars_; ++i) {
         int y;
         for (y=0; y<barHeights_[i]; ++y) {
@@ -169,11 +186,18 @@ public:
             drawBarRow(i, y, 200, 0, 0);
           }
         }
+        
         // Anything above the bar should be black
         for (; y<height_; ++y) {
           drawBarRow(i, y, 0, 0, 0);
         }
       }
+    
+      // Save bar heights for next iteration
+      for (int i=0; i<numBars_; ++i) {
+        previousBarHeights[i] = barHeights_[i];
+      }
+      
       usleep(delay_ms_ * 1000);
     }
     close(sockfd);
