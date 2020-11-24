@@ -1,7 +1,6 @@
 #!./env/bin/python3
 
 import struct
-import wave
 
 import numpy as np
 import pyaudio
@@ -39,6 +38,7 @@ def main():
   # Frequency range
   x_f = 1.0 * np.arange(-nFFT / 2 + 1, nFFT / 2) / nFFT * RATE
 
+  # Initialise PyAudio  
   p = pyaudio.PyAudio()
   # Used for normalizing signal. If use paFloat32, then it's already -1..1.
   # Because of saving wave, paInt16 will be easier.
@@ -64,6 +64,7 @@ def main():
   dm = []
   df = []
   
+  # Initialise socket
   with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.bind((HOST, PORT))
     s.listen()
@@ -71,6 +72,7 @@ def main():
     conn, addr = s.accept()
     with conn:
       while True:
+        # Get request from vbars
         if not conn.recv(1):
           break
         
@@ -81,6 +83,7 @@ def main():
             dm.append(tt)
             print("delta_matrix=" + str(tt))
 
+        # FFT
         N = int(max(stream.get_read_available() / nFFT, 1) * nFFT)
         data = stream.read(N, exception_on_overflow=False)
 
@@ -119,6 +122,7 @@ def main():
           if int(Y[i*X_STEP+middle]) < 10:
             out += " "
         
+        # Send massive to socket
         conn.sendall(bytes(out, 'utf-8'))
         
         if DEBUG:

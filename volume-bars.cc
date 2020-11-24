@@ -2,7 +2,6 @@
 #include "led-matrix.h"
 
 #include "pixel-mapper.h"
-#include "graphics.h"
 
 #include <assert.h>
 #include <getopt.h>
@@ -121,10 +120,11 @@ public:
     // Start the loop
     while (!interrupt_received) {
       
+      // Send request to listener
       send(sockfd, c, 1, 0);
       
       // Read bar heights from socket
-      if ((n = read(sockfd, recvBuff, sizeof(recvBuff))) <= 0)
+      if ((n = read(sockfd, recvBuff, sizeof(recvBuff))) <= 0) //get data from listener
       {
         continue;
       }
@@ -133,7 +133,7 @@ public:
       int intCounter = 0;
       bool space = false;
   
-      for (int i = 0; i < elCount*multy; i++)
+      for (int i = 0; i < elCount*multy; i++) //parse data to int
       {
         if (recvBuff[i] == ' ')
         {

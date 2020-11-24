@@ -9,7 +9,7 @@
 #	content-streamer.o
 
 OBJECTS=gpio.o led-matrix.o options-initialize.o framebuffer.o \
-        thread.o bdf-font.o graphics.o hardware-mapping.o \
+        thread.o hardware-mapping.o \
         pixel-mapper.o multiplex-mappers.o
 
 
@@ -184,7 +184,6 @@ $(TARGET).so.1 : $(OBJECTS)
 led-matrix.o: led-matrix.cc $(INCDIR)/led-matrix.h
 thread.o : thread.cc $(INCDIR)/thread.h
 framebuffer.o: framebuffer.cc framebuffer-internal.h
-graphics.o: graphics.cc utf8-internal.h
 
 %.o : %.cc compiler-flags
 	$(CXX) -I$(INCDIR) $(CXXFLAGS) -c -o $@ $<
